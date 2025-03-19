@@ -18,8 +18,6 @@ License:
 from .model import WasteRetrievalModel
 import matplotlib.pyplot as plt
 from .server import MatplotlibVisualization
-import time
-from mesa.visualization import SolaraViz, make_space_component, make_plot_component
 # Create the model (adjust parameters as needed)
 
 def Play():
