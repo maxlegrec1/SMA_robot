@@ -1,12 +1,27 @@
-# model.py
-# Add these imports at the top of model.py
+"""
+  ____  __  __    _              _____    _        __  ____     __
+ / ___||  \/  |  / \            | ____|  / \      |  \/  \ \   / /
+ \___ \| |\/| | / _ \    _____  |  _|   / _ \     | |\/| |\ \ / / 
+  ___) | |  | |/ ___ \  |_____| | |___ / ___ \ _  | |  | | \ V /  
+ |____/|_|  |_/_/   \_\         |_____/_/   \_( ) |_|  |_|  \_/   
+                                              |/                  
+Authors:
+   Maxime Vanderbeken
+   Etienne Andrier
+
+Date : 2025-03-19
+
+License:
+   This file is open source and may be freely used and modified,
+   provided that proper credit is given to the original authors.
+"""
 from mesa.datacollection import DataCollector
 import mesa
 from mesa import Model
-from agents import RadioactivityAgent, RobotAgent, WasteAgent
+from .agents import RadioactivityAgent, RobotAgent, WasteAgent
 import numpy as np
-from action import Move, Drop, NoneAction
-from variables import color_dict,direction_dict,inv_direction_dict
+from .action import Move, Drop, NoneAction
+from .variables import color_dict,direction_dict,inv_direction_dict
 # Add the following helper functions to model.py to count different waste types
 def count_green_waste(model):
     return sum(1 for agent in model.agents if isinstance(agent, WasteAgent) and agent.color == 'green')

@@ -1,11 +1,27 @@
-# server.py
+"""
+  ____  __  __    _              _____    _        __  ____     __
+ / ___||  \/  |  / \            | ____|  / \      |  \/  \ \   / /
+ \___ \| |\/| | / _ \    _____  |  _|   / _ \     | |\/| |\ \ / / 
+  ___) | |  | |/ ___ \  |_____| | |___ / ___ \ _  | |  | | \ V /  
+ |____/|_|  |_/_/   \_\         |_____/_/   \_( ) |_|  |_|  \_/   
+                                              |/                  
+Authors:
+   Maxime Vanderbeken
+   Etienne Andrier
+
+Date : 2025-03-19
+
+License:
+   This file is open source and may be freely used and modified,
+   provided that proper credit is given to the original authors.
+"""
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import ListedColormap
-from agents import RadioactivityAgent, RobotAgent, WasteAgent
 from matplotlib.widgets import Button, Slider
 import matplotlib.transforms as transforms
 
+from .agents import RadioactivityAgent, RobotAgent, WasteAgent
 class MatplotlibVisualization:
     """An interactive visualization class using Matplotlib for the Waste Retrieval Model"""
 

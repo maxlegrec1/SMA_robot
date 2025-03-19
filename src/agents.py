@@ -1,12 +1,26 @@
-import mesa
+"""
+  ____  __  __    _              _____    _        __  ____     __
+ / ___||  \/  |  / \            | ____|  / \      |  \/  \ \   / /
+ \___ \| |\/| | / _ \    _____  |  _|   / _ \     | |\/| |\ \ / / 
+  ___) | |  | |/ ___ \  |_____| | |___ / ___ \ _  | |  | | \ V /  
+ |____/|_|  |_/_/   \_\         |_____/_/   \_( ) |_|  |_|  \_/   
+                                              |/                  
+Authors:
+   Maxime Vanderbeken
+   Etienne Andrier
+
+Date : 2025-03-19
+
+License:
+   This file is open source and may be freely used and modified,
+   provided that proper credit is given to the original authors.
+"""
 from mesa import Agent
-from action import Move, Drop, NoneAction
+from .action import Move, Drop, NoneAction
 import numpy as np
-from variables import color_dict,direction_dict,inv_direction_dict
-from knowledge_expansion import expand_grid
+from .variables import color_dict,direction_dict,inv_direction_dict
+from .knowledge_expansion import expand_grid
 import random
-
-
 
 class BaseAgent(Agent):
     def __init__(self,model):
