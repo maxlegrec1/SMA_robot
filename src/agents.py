@@ -119,8 +119,9 @@ class RobotAgent(BaseAgent):
                 self.knowledge['agent_x'] += max(0,-x)
                 self.knowledge['agent_y'] += max(0,-y)
         #finish updating knowledge
-        #add one age to all squares 
-        self.knowledge['internal_map'][:,:,-1] += 1 
+        #add one age to all squares except fog of war
+        mask = self.knowledge['internal_map'][:, :, -1] != -1
+        self.knowledge['internal_map'][:, :, -1][mask] += 1 
         for (x,y) in observation:
             #first, reset information of that square
             self.knowledge['internal_map'][x + self.knowledge['agent_x'],y + self.knowledge['agent_y'],:] = 0

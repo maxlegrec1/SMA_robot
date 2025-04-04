@@ -55,8 +55,8 @@ def expand_grid(grid, direction):
     
     # Create new grid filled with zeros
     new_grid = np.zeros(new_shape, dtype=grid.dtype)
-    #thought behind the following line line is that fog of war should be -1, which will be the case once 1 is added for the age.
-    new_grid[:,:,-1] = -2 
+    #fog of war
+    new_grid[:,:,-1] = -1 
     # Copy the original data to the correct position
     new_grid[indices] = grid
     
