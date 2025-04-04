@@ -473,6 +473,7 @@ class MatplotlibVisualization:
                                 self.agent_positions[(sub_x, sub_y + 0.1)] = waste_agent
 
         # Add legend to the right of the grid
+        '''
         legend_elements = [
             plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='darkgreen', markersize=12, label='Green Robot'),
             plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='olive', markersize=12, label='Yellow Robot'),
@@ -483,10 +484,10 @@ class MatplotlibVisualization:
             plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='darkgreen', markersize=12, label='Robot with Waste',
                       markeredgecolor='darkgreen'),
             plt.Line2D([0], [0], marker='D', color='w', markerfacecolor='green', markersize=6, alpha=0.8, label='Carried Waste')
-        ]
+        ]'''
 
         # Position the legend outside the grid on the right side
-        self.legend = self.ax.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1.02, 0.5))
+        #self.legend = self.ax.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1.02, 0.5))
 
         # Count agents by type for statistics
         green_waste = sum(1 for agent in self.model.agents if isinstance(agent, WasteAgent) and agent.color == 'green')

@@ -109,7 +109,7 @@ class RobotAgent(BaseAgent):
                     if inv_direction_dict[next_cell] == "NORTH":
                         return Move("NORTH")
             self.state = "FINDING_WASTE"
-            print(self.knowledge['transporting'])
+            #print(self.knowledge['transporting'])
             return Drop(self.knowledge['transporting'][0])
 
     def update_knowledge(self,observation):

@@ -190,12 +190,12 @@ class WasteRetrievalModel(Model):
                 if dropped.color == "red" and dropped.pos == (self.width -1,self.height-1):
                     dropped.arrived = True
                     self.disposed_waste_count += 1
-                print(f"Dropping waste {action.drop_id}")
+                #print(f"Dropping waste {action.drop_id}")
 
             if isinstance(action,Move):
                 self.move(agent,action.direction)
-                print(f"currently transporting {agent.knowledge['transporting']}")
-                print(f"moving in direction {action.direction}")
+                #print(f"currently transporting {agent.knowledge['transporting']}")
+                #print(f"moving in direction {action.direction}")
             #if can pickup, do it
             cellmates = self.grid.get_cell_list_contents([agent.pos])
             for cellmate in cellmates:
@@ -212,9 +212,9 @@ class WasteRetrievalModel(Model):
                 if self.get_agent_by_id(id1).color == 'red' or self.get_agent_by_id(id1).color != self.get_agent_by_id(id2).color :
                     pass
                 else:
-                    print("changing color of agent", self.get_agent_by_id(id1).unique_id,id1)
+                    #print("changing color of agent", self.get_agent_by_id(id1).unique_id,id1)
                     self.get_agent_by_id(id1).color = next_color(self.get_agent_by_id(id1).color)
-                    print('removing agent', id2)
+                    #print('removing agent', id2)
                     self.grid.remove_agent(self.get_agent_by_id(id2))
                     self.agents.remove(self.get_agent_by_id(id2))
                     agent.knowledge['transporting'].pop()
