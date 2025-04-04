@@ -86,7 +86,9 @@ class MatplotlibVisualization:
             'num_green': self.slider_num_green.val,
             'num_yellow': self.slider_num_yellow.val,
             'num_red': self.slider_num_red.val,
-            'num_waste': self.slider_num_waste.val,
+            'num_waste_green': self.slider_num_waste_green.val,
+            'num_waste_yellow': self.slider_num_waste_yellow.val,
+            'num_waste_red': self.slider_num_waste_red.val,
             'width': self.slider_width.val,
             'height': self.slider_height.val
         }
@@ -102,9 +104,11 @@ class MatplotlibVisualization:
         slider_ax_num_green = plt.axes([0.70, 0.65, 0.25, 0.03])
         slider_ax_num_yellow = plt.axes([0.70, 0.60, 0.25, 0.03])
         slider_ax_num_red = plt.axes([0.70, 0.55, 0.25, 0.03])
-        slider_ax_num_waste = plt.axes([0.70, 0.50, 0.25, 0.03])
-        slider_ax_width = plt.axes([0.70, 0.45, 0.25, 0.03])
-        slider_ax_height = plt.axes([0.70, 0.40, 0.25, 0.03])
+        slider_ax_num_waste_green = plt.axes([0.70, 0.50, 0.25, 0.03])
+        slider_ax_num_waste_yellow = plt.axes([0.70, 0.45, 0.25, 0.03])
+        slider_ax_num_waste_red = plt.axes([0.70, 0.40, 0.25, 0.03])
+        slider_ax_width = plt.axes([0.70, 0.35, 0.25, 0.03])
+        slider_ax_height = plt.axes([0.70, 0.30, 0.25, 0.03])
 
         # Buttons
         self.button_play_pause = Button(button_ax_play_pause, 'Play')
@@ -116,7 +120,9 @@ class MatplotlibVisualization:
         self.slider_num_green = Slider(slider_ax_num_green, 'Green Robots', 0, 10, valinit=self.model.num_green, valstep=1)
         self.slider_num_yellow = Slider(slider_ax_num_yellow, 'Yellow Robots', 0, 10, valinit=self.model.num_yellow, valstep=1)
         self.slider_num_red = Slider(slider_ax_num_red, 'Red Robots', 0, 10, valinit=self.model.num_red, valstep=1)
-        self.slider_num_waste = Slider(slider_ax_num_waste, 'Waste', 0, 20, valinit=self.model.num_waste, valstep=1)
+        self.slider_num_waste_green = Slider(slider_ax_num_waste_green, 'Green Waste', 0, 20, valinit=self.model.num_waste_green, valstep=1)
+        self.slider_num_waste_yellow = Slider(slider_ax_num_waste_yellow, 'Yellow Waste', 0, 20, valinit=self.model.num_waste_yellow, valstep=1)
+        self.slider_num_waste_red = Slider(slider_ax_num_waste_red, 'Red Waste', 0, 20, valinit=self.model.num_waste_red, valstep=1)
         self.slider_width = Slider(slider_ax_width, 'Width', 30, 90, valinit=self.model.width, valstep=3) # Width must be multiple of 3
         self.slider_height = Slider(slider_ax_height, 'Height', 30, 90, valinit=self.model.height, valstep=1)
 
@@ -124,7 +130,9 @@ class MatplotlibVisualization:
         self.slider_num_green.on_changed(self.update_params)
         self.slider_num_yellow.on_changed(self.update_params)
         self.slider_num_red.on_changed(self.update_params)
-        self.slider_num_waste.on_changed(self.update_params)
+        self.slider_num_waste_green.on_changed(self.update_params)
+        self.slider_num_waste_yellow.on_changed(self.update_params)
+        self.slider_num_waste_red.on_changed(self.update_params)
         self.slider_width.on_changed(self.update_params)
         self.slider_height.on_changed(self.update_params)
 
@@ -134,7 +142,9 @@ class MatplotlibVisualization:
             'num_green': int(self.slider_num_green.val),
             'num_yellow': int(self.slider_num_yellow.val),
             'num_red': int(self.slider_num_red.val),
-            'num_waste': int(self.slider_num_waste.val),
+            'num_waste_green': int(self.slider_num_waste_green.val),
+            'num_waste_yellow': int(self.slider_num_waste_yellow.val),
+            'num_waste_red': int(self.slider_num_waste_red.val),
             'width': int(self.slider_width.val),
             'height': int(self.slider_height.val)
         }
