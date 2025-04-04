@@ -72,7 +72,7 @@ class WasteRetrievalModel(Model):
                 "Disposed Waste": count_disposed_waste
             }
         )
-        self.running = False # Simulation starts paused
+        self.running = True # Simulation starts paused
 
         self.robot_agents = []
         self.waste_agents = []
@@ -96,7 +96,7 @@ class WasteRetrievalModel(Model):
                         self.grid.place_agent(agent, (i, j))
                         self.radioactivity_agents.append(agent)
                     else:
-                        agent = RadioactivityAgent(self,radioactivity=0.33*zone + np.random.random()/3)
+                        agent = RadioactivityAgent(self,radioactivity = zone/3 + (np.random.random())/3)
                         self.grid.place_agent(agent, (i, j))
                         self.radioactivity_agents.append(agent)
 
