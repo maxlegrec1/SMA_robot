@@ -51,6 +51,12 @@ model_params = {
         "value": 42,
         "label": "Random Seed",
     },
+    "strategy": {
+        "type": "Select",
+        "label": "Robot Strategy",
+        "value": "random",  # Default strategy
+        "values": ["random", "refined"] # Available strategies
+    },
     "num_green": Slider("Number of green robots", 5, 1, 10),
     "num_yellow": Slider("Number of yellow robots", 5, 1, 10),
     "num_red": Slider("Number of red robots", 5, 1, 10),

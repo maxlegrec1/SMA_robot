@@ -50,7 +50,8 @@ class WasteRetrievalModel(Model):
                  num_waste = 1,
                  width = 30,
                  height = 30,
-                 seed=None):
+                 seed=None,
+                 strategy='random'):
         super().__init__(seed=seed)
         if(width%3!=0):
             raise Exception("The indicated width is not a multiple of 3")
@@ -61,6 +62,7 @@ class WasteRetrievalModel(Model):
         self.num_red = num_red
         self.num_waste = num_waste
         self.grid = mesa.space.MultiGrid(width, height,torus = False)
+        self.strategy = strategy
         #self.schedule = mesa.time.RandomActivation(self)
         self.disposed_waste_count = 0
         # Add the datacollector
@@ -125,17 +127,17 @@ class WasteRetrievalModel(Model):
             
 
         for g in range(self.num_green):
-            agent = RobotAgent(self,color='green')
+            agent = RobotAgent(self,color='green',strategy=self.strategy)
             pos = random_pos_zone1.pop()
             self.grid.place_agent(agent,pos)
             self.robot_agents.append(agent)
         for y in range(self.num_yellow):
-            agent = RobotAgent(self,color='yellow')
+            agent = RobotAgent(self,color='yellow',strategy=self.strategy)
             pos = random_pos_zone2.pop()
             self.grid.place_agent(agent,pos)
             self.robot_agents.append(agent)
         for r in range(self.num_red):
-            agent = RobotAgent(self,color='red')
+            agent = RobotAgent(self,color='red',strategy=self.strategy)
             pos = random_pos_zone3.pop()
             self.grid.place_agent(agent,pos)
             self.robot_agents.append(agent)

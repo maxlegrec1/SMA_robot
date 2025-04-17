@@ -21,7 +21,7 @@ from .server import MatplotlibVisualization
 # Create the model (adjust parameters as needed)
 
 def Play():
-    mod = WasteRetrievalModel(num_green = 2, num_yellow = 2, num_red = 1, num_waste = 5, width = 30, height = 30)  # Using smaller grid for better visualization
+    mod = WasteRetrievalModel(num_green = 2, num_yellow = 2, num_red = 1, num_waste = 5, width = 30, height = 30, strategy='random')  # Using smaller grid for better visualization
     num_steps = 1000
 
     # Create the visualization

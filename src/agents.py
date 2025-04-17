@@ -45,9 +45,10 @@ class RadioactivityAgent(BaseAgent):
         self.radioactivity = radioactivity
         
 class RobotAgent(BaseAgent):
-    def __init__(self,model,color):
+    def __init__(self,model,color,strategy='random'):
         super().__init__(model)
         self.color = color
+        self.strategy = strategy
         if self.color == "red":
             self.max_allowed_radioactivity = 2
         else:
@@ -78,11 +79,57 @@ class RobotAgent(BaseAgent):
         #print(self.state,possible_next_cell,self.color,self.max_allowed_radioactivity)
         if self.state == "FINDING_WASTE" and self.color == "green":
             #print(possible_next_cell)
-            next_cell = random.choice(possible_next_cell)
-            next_cell_direction = inv_direction_dict[next_cell]
-            x,y = next_cell
-            self.knowledge['agent_x'] += x
-            self.knowledge['agent_y'] += y
+            if self.strategy=='random':
+                next_cell = random.choice(possible_next_cell)
+                next_cell_direction = inv_direction_dict[next_cell]
+                x,y = next_cell
+                self.knowledge['agent_x'] += x
+                self.knowledge['agent_y'] += y
+            elif self.strategy=='refined':
+                # If green waste is available, got get it
+                x_agent, y_agent = self.knowledge['agent_x'], self.knowledge['agent_y']
+                green_waste = []
+                for (x,y) in possible_next_cell:
+                    if self.knowledge['internal_map'][x_agent + x, y_agent + y,2]==1:
+                        green_waste.append((x,y))
+                if len(green_waste) > 0:
+                    next_cell = random.choice(green_waste)
+                
+                else: # If there are no green neighbouring wastes, we go where we can maximize the number of 
+                    #uncovered cells.
+                    max_unexplored_count = -1
+                    best_next_cells = []
+
+                    neighbor_moves = [(0, 1), (0, -1), (1, 0), (-1, 0)] 
+
+                    for (rel_x, rel_y) in possible_next_cell:
+                        potential_next_abs_x = x_agent + rel_x
+                        potential_next_abs_y = y_agent + rel_y
+                        current_unexplored_count = 0
+
+                        for (n_rel_x, n_rel_y) in neighbor_moves:
+                            neighbor_abs_x = potential_next_abs_x + n_rel_x
+                            neighbor_abs_y = potential_next_abs_y + n_rel_y
+                            if self.in_map((neighbor_abs_x, neighbor_abs_y)):
+                                if self.knowledge['internal_map'][neighbor_abs_x, neighbor_abs_y, 5] == -1:
+                                    current_unexplored_count += 1
+
+                        if current_unexplored_count > max_unexplored_count:
+                            max_unexplored_count = current_unexplored_count
+                            best_next_cells = [(rel_x, rel_y)]
+                        elif current_unexplored_count == max_unexplored_count:
+                            best_next_cells.append((rel_x, rel_y))
+
+                    if best_next_cells:
+                        next_cell = random.choice(best_next_cells)
+                    else: 
+                        next_cell = random.choice(possible_next_cell)
+                    
+
+                next_cell_direction = inv_direction_dict[next_cell]
+                x,y = next_cell
+                self.knowledge['agent_x'] += x
+                self.knowledge['agent_y'] += y
             #print(self.knowledge['internal_map'][:,:,0])
             return Move(next_cell_direction)
         
