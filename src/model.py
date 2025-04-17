@@ -45,6 +45,8 @@ class WasteRetrievalModel(Model):
                  num_waste_green = 4,
                  width = 30,
                  height = 30,
+                 seed=None,
+                 strategy='random'):
                  save_path = "results/",
                  max_steps = 1000,
                  finish_threshold = 0.9,
@@ -67,6 +69,7 @@ class WasteRetrievalModel(Model):
         self.current_step = 0
         self.finished = False
         self.grid = mesa.space.MultiGrid(width, height,torus = False)
+        self.strategy = strategy
         #self.schedule = mesa.time.RandomActivation(self)
         self.disposed_waste_count = 0
         # Add the datacollector
@@ -91,7 +94,7 @@ class WasteRetrievalModel(Model):
                             "Arrived": lambda a: a.arrived}
             }
         )
-        self.running = False # Simulation starts paused
+        self.running = True # Simulation starts paused
 
         self.robot_agents = []
         self.waste_agents = []
@@ -152,17 +155,17 @@ class WasteRetrievalModel(Model):
             self.waste_agents.append(agent)
 
         for g in range(self.num_green):
-            agent = RobotAgent(self,color='green')
+            agent = RobotAgent(self,color='green',strategy=self.strategy)
             pos = random_pos_zone1.pop()
             self.grid.place_agent(agent,pos)
             self.robot_agents.append(agent)
         for y in range(self.num_yellow):
-            agent = RobotAgent(self,color='yellow')
+            agent = RobotAgent(self,color='yellow',strategy=self.strategy)
             pos = random_pos_zone2.pop()
             self.grid.place_agent(agent,pos)
             self.robot_agents.append(agent)
         for r in range(self.num_red):
-            agent = RobotAgent(self,color='red')
+            agent = RobotAgent(self,color='red',strategy=self.strategy)
             pos = random_pos_zone3.pop()
             self.grid.place_agent(agent,pos)
             self.robot_agents.append(agent)
