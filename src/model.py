@@ -46,11 +46,10 @@ class WasteRetrievalModel(Model):
                  width = 30,
                  height = 30,
                  seed=None,
-                 strategy='random'):
+                 strategy='random',
                  save_path = "results/",
                  max_steps = 1000,
-                 finish_threshold = 0.9,
-                 seed=None):
+                 finish_threshold = 0.9):
         super().__init__(seed=seed)
         if(width%3!=0):
             raise Exception("The indicated width is not a multiple of 3")

@@ -60,7 +60,9 @@ model_params = {
     "num_green": Slider("Number of green robots", 5, 1, 10),
     "num_yellow": Slider("Number of yellow robots", 5, 1, 10),
     "num_red": Slider("Number of red robots", 5, 1, 10),
-    "num_waste": Slider("Number of initial waste units", 10, 1, 30),
+    "num_waste_green": Slider("Number of initial waste units", 10, 1, 30),
+    "num_waste_yellow": Slider("Number of initial waste units", 10, 1, 30),
+    "num_waste_red": Slider("Number of initial waste units", 10, 1, 30),
     "width": Slider("Grid width", 33, 20, 100),
     "height": Slider("Grid height", 33, 20, 100),
 }
