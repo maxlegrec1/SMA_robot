@@ -46,9 +46,9 @@ class WasteRetrievalModel(Model):
                  width = 30,
                  height = 30,
                  seed=None,
-                 strategy='random',
+                 strategy='refined',
                  save_path = "results/",
-                 max_steps = 200,
+                 max_steps = 20000,
                  finish_threshold = 0.9):
         super().__init__(seed=seed)
         if(width%3!=0):

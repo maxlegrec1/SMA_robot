@@ -18,6 +18,7 @@ License:
 from mesa import Agent
 from .action import Move, Drop, NoneAction
 import numpy as np
+from scipy.ndimage import binary_dilation
 from .variables import color_dict,direction_dict,inv_direction_dict
 from .knowledge_expansion import expand_grid
 import random
@@ -62,7 +63,7 @@ class RobotAgent(BaseAgent):
         self.knowledge['waste_color'] = {}
         self.state = "FINDING_WASTE"
     def deliberate(self):
-        print(self.knowledge['internal_map'].shape)
+        #print(self.knowledge['internal_map'].shape)
         ''' What should the agent do (what action) depending on self.knowledge'''
         #COMPUTE STATE FROM KNOWLEDGE
         #if transporting a waste of higher color than self, transporting to east
@@ -125,11 +126,8 @@ class RobotAgent(BaseAgent):
             return Drop(self.knowledge['transporting'][0])
 
     def update_knowledge(self,observation):
-        print("oui")
         for (x,y) in observation:
-            print(self.knowledge['agent_x'],self.knowledge['agent_y'],x,y,self.in_map((x + self.knowledge['agent_x'],y + self.knowledge['agent_y'])),abs(x) + abs(y) == 1)
             if not self.in_map((x + self.knowledge['agent_x'],y + self.knowledge['agent_y'])) and abs(x) + abs(y) == 1:  #second condition makes sure that its N,S,W,E
-                print("coucou")
                 self.knowledge['internal_map'] = expand_grid(self.knowledge['internal_map'],(x,y))
                 self.knowledge['agent_x'] += max(0,-x)
                 self.knowledge['agent_y'] += max(0,-y)
@@ -137,6 +135,7 @@ class RobotAgent(BaseAgent):
         #add one age to all squares except fog of war
         mask = self.knowledge['internal_map'][:, :, -1] != -1
         self.knowledge['internal_map'][:, :, -1][mask] += 1 
+        print(self.knowledge["internal_map"][:,:,-1])
         for (x,y) in observation:
             #first, reset information of that square
             self.knowledge['internal_map'][x + self.knowledge['agent_x'],y + self.knowledge['agent_y'],:] = 0
@@ -149,7 +148,7 @@ class RobotAgent(BaseAgent):
                     self.knowledge['internal_map'][x + self.knowledge['agent_x'],y + self.knowledge['agent_y'],1] +=1
 
                 if isinstance(agent,WasteAgent):
-                    if not agent.picked_up: #don't notice wastes that are picked up
+                    if not (agent.picked_up or agent.arrived): #don't notice wastes that are picked up
                         self.knowledge['internal_map'][x + self.knowledge['agent_x'],y + self.knowledge['agent_y'],2 + color_dict[agent.color]] += 1 
                     self.knowledge['waste_color'][agent.unique_id] = agent.color
         self.knowledge['last_observation'] = observation
@@ -200,75 +199,107 @@ class RefinedAgent(RobotAgent):
                 possible_next_cell.append((x,y))
         #WHAT TO DO FOR EACH STATE
         #print(self.state,possible_next_cell,self.color,self.max_allowed_radioactivity)
-        if self.state == "FINDING_WASTE" and self.color == "green":
-
-            # If green waste is available, got get it
-            x_agent, y_agent = self.knowledge['agent_x'], self.knowledge['agent_y']
-            green_waste = []
-            for (x,y) in possible_next_cell:
-                if self.knowledge['internal_map'][x_agent + x, y_agent + y,2]==1:
-                    green_waste.append((x,y))
-            if len(green_waste) > 0:
-                next_cell = random.choice(green_waste)
-            
-            else: # If there are no green neighbouring wastes, we go where we can maximize the number of 
-                #uncovered cells.
-                max_unexplored_count = -1
-                best_next_cells = []
-
-                neighbor_moves = [(0, 1), (0, -1), (1, 0), (-1, 0)] 
-
-                for (rel_x, rel_y) in possible_next_cell:
-                    potential_next_abs_x = x_agent + rel_x
-                    potential_next_abs_y = y_agent + rel_y
-                    current_unexplored_count = 0
-
-                    for (n_rel_x, n_rel_y) in neighbor_moves:
-                        neighbor_abs_x = potential_next_abs_x + n_rel_x
-                        neighbor_abs_y = potential_next_abs_y + n_rel_y
-                        if self.in_map((neighbor_abs_x, neighbor_abs_y)):
-                            if self.knowledge['internal_map'][neighbor_abs_x, neighbor_abs_y, 5] == -1:
-                                current_unexplored_count += 1
-
-                    if current_unexplored_count > max_unexplored_count:
-                        max_unexplored_count = current_unexplored_count
-                        best_next_cells = [(rel_x, rel_y)]
-                    elif current_unexplored_count == max_unexplored_count:
-                        best_next_cells.append((rel_x, rel_y))
-
-                if best_next_cells:
-                    next_cell = random.choice(best_next_cells)
-                else: 
-                    next_cell = random.choice(possible_next_cell)
-            next_cell_direction = inv_direction_dict[next_cell]
-            x,y = next_cell
-            self.knowledge['agent_x'] += x
-            self.knowledge['agent_y'] += y
-            #print(self.knowledge['internal_map'][:,:,0])
-            return Move(next_cell_direction)
-        
         if self.state == "FINDING_WASTE":
-            for next_cell in possible_next_cell:
-                if self.get_radioactivity((self.knowledge['agent_x'],self.knowledge['agent_y'])) > color_dict[self.color]/3 +1e-10:
-                    return Move("WEST")
-            #if on the boundary, random walk north and south
-            #print(possible_next_cell)
-            possible_next_cell_dir_shuffled = [inv_direction_dict[cell] for cell in possible_next_cell]
-            random.shuffle(possible_next_cell_dir_shuffled)
-            for dir in possible_next_cell_dir_shuffled:
-                if dir == "NORTH" or dir == "SOUTH":
-                    return Move(dir)
+            #if a waste of color is available in knowledge map, go get it.
+            #Otherwise, explore.
 
+            waste_map_agent_color = self.knowledge["internal_map"][:,:,2 + color_dict[self.color]]
+            candidate_squares = (waste_map_agent_color > 0)
+            #print(candidate_squares)
+            if candidate_squares.any():
+                #there is a waste in sight. Go for it !
+                coordinates = np.argwhere(candidate_squares)
+                # Convert to list of tuples (x, y)
+                coordinates_list = [tuple(coord) for coord in coordinates]
+                x_agent,y_agent = self.knowledge['agent_x'],self.knowledge['agent_y']
+                coordinates_list = [(x-x_agent,y-y_agent) for (x,y) in coordinates_list]
+                distances = [x*x + y*y for (x,y) in coordinates_list]
+                closest = min(enumerate(distances), key=lambda x: x[1])[0]
+                target_cell = coordinates_list[closest]
+                x,y = self.normalize_direction(target_cell)
+                target_dir = inv_direction_dict[(x,y)]
+                self.knowledge['agent_x'] += int(x)
+                self.knowledge['agent_y'] += int(y)
+                return Move(target_dir)
+            else:
+                #nothing in sight, explore !
+                age_map = self.knowledge['internal_map'][:,:,-1]
+                if self.color == "red":
+                    radioactivities = self.knowledge['internal_map'][:,:,0] >= (color_dict[self.color]/3 + 1e-10)
+                else:
+                    radioactivities = (self.knowledge['internal_map'][:,:,0] >= (color_dict[self.color]/3 + 1e-10)) & (self.knowledge['internal_map'][:,:,0] <= ((color_dict[self.color] +1)/3 - 1e-10))
+                
+                radioactivities = binary_dilation(radioactivities,structure=np.ones((3, 3)))
+
+                extended_age_map = np.where(radioactivities,age_map,0)
+                if -1 in extended_age_map:
+                    target =-1
+                    coordinates = np.argwhere(extended_age_map == target)
+                    # Convert to list of tuples (x, y)
+                    coordinates_list = [tuple(coord) for coord in coordinates if tuple(coord)!= (self.knowledge['agent_x'],self.knowledge['agent_y'])]
+                    x_agent,y_agent = self.knowledge['agent_x'],self.knowledge['agent_y']
+                    coordinates_list = [(x-x_agent,y-y_agent) for (x,y) in coordinates_list]
+                    distances = [x*x + y*y for (x,y) in coordinates_list]
+                    closest = min(enumerate(distances), key=lambda x: x[1])[0]
+                    target_cell = coordinates_list[closest]
+                    x,y = self.normalize_direction(target_cell)
+                    target_dir = inv_direction_dict[(x,y)]
+                    self.knowledge['agent_x'] += int(x)
+                    self.knowledge['agent_y'] += int(y)
+                    return Move(target_dir)
+                else:
+                    i_indices, j_indices = np.meshgrid(np.arange(age_map.shape[0]), np.arange(age_map.shape[1]), indexing='ij')
+                    distance_map = np.abs(i_indices - self.knowledge['agent_x']) + np.abs(j_indices - self.knowledge['agent_y'])
+                    target = np.max(np.where(radioactivities,age_map-distance_map,-10000))
+                    if target <= 0:
+                        if self.get_radioactivity((self.knowledge['agent_x'],self.knowledge['agent_y'])) < color_dict[self.color]/3 +1e-10: #Si deja sur la frontière, interdiction d'aller plus à gauche
+                            #remove westish from possibilities
+                            possible_next_cell = [(x,y) for (x,y) in possible_next_cell if x>= 0]
+                        x,y = random.sample(possible_next_cell,1)[0]
+                        target_dir = inv_direction_dict[(x,y)]
+                        self.knowledge['agent_x'] += int(x)
+                        self.knowledge['agent_y'] += int(y)
+                        return Move(target_dir) 
+                    else:
+                        coordinates = np.argwhere(age_map-distance_map == target)
+                        # Convert to list of tuples (x, y)
+                        coordinates_list = [tuple(coord) for coord in coordinates if tuple(coord)!= (self.knowledge['agent_x'],self.knowledge['agent_y'])]
+                        x_agent,y_agent = self.knowledge['agent_x'],self.knowledge['agent_y']
+                        coordinates_list = [(x-x_agent,y-y_agent) for (x,y) in coordinates_list]
+                        distances = [x*x + y*y for (x,y) in coordinates_list]
+                        closest = min(enumerate(distances), key=lambda x: x[1])[0]
+                        target_cell = coordinates_list[closest]
+                        x,y = self.normalize_direction(target_cell)
+                        target_dir = inv_direction_dict[(x,y)]
+                        self.knowledge['agent_x'] += int(x)
+                        self.knowledge['agent_y'] += int(y)
+                        return Move(target_dir)
+
+                
 
         if self.state == "TRANSPORTING":
             for next_cell in possible_next_cell:
                 if inv_direction_dict[next_cell] == "EAST":
+                    x,y = direction_dict["EAST"]
+                    self.knowledge['agent_x'] += x
+                    self.knowledge['agent_y'] += y
                     return Move("EAST")
             #go up for red robot 
             if self.color == "red":   
                 for next_cell in possible_next_cell:
                     if inv_direction_dict[next_cell] == "NORTH":
+                        x,y = direction_dict["NORTH"]
+                        self.knowledge['agent_x'] += x
+                        self.knowledge['agent_y'] += y
                         return Move("NORTH")
             self.state = "FINDING_WASTE"
             #print(self.knowledge['transporting'])
             return Drop(self.knowledge['transporting'][0])
+
+
+    def normalize_direction(self,target_cell):
+        x, y = target_cell
+        return (
+            0 if x == 0 else x / abs(x),
+            0 if y == 0 else y / abs(y)
+        )

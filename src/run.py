@@ -22,7 +22,7 @@ import time
 # Create the model (adjust parameters as needed)
 
 def Play():
-    mod = WasteRetrievalModel(num_green = 2, num_yellow = 2, num_red = 1, num_waste_yellow = 5, width = 30, height = 30, strategy='random')  # Using smaller grid for better visualization
+    mod = WasteRetrievalModel(num_green = 5, num_yellow = 5, num_red = 5, num_waste_yellow = 0,num_waste_green=0,num_waste_red=1, width = 30, height = 30, strategy='refined')  # Using smaller grid for better visualization
 
 
     # Create the visualization
@@ -38,4 +38,3 @@ def Play():
         else:
             viz.render() # Still render to update display even when paused
             #plt.pause(0.001) # Small pause to keep UI responsive, reduce if needed
-        time.sleep(1)
