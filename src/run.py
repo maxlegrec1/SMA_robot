@@ -18,12 +18,12 @@ License:
 from .model import WasteRetrievalModel
 import matplotlib.pyplot as plt
 from .server import MatplotlibVisualization
+import time
 # Create the model (adjust parameters as needed)
 
 def Play():
-    mod = WasteRetrievalModel(num_green = 2, num_yellow = 2, num_red = 1, num_waste = 5, width = 30, height = 30, strategy='random')  # Using smaller grid for better visualization
+    mod = WasteRetrievalModel(num_green = 2, num_yellow = 2, num_red = 1, num_waste_yellow = 5, width = 30, height = 30, strategy='random')  # Using smaller grid for better visualization
 
-    num_steps = 1000
 
     # Create the visualization
     viz = MatplotlibVisualization(mod)
@@ -38,3 +38,4 @@ def Play():
         else:
             viz.render() # Still render to update display even when paused
             #plt.pause(0.001) # Small pause to keep UI responsive, reduce if needed
+        time.sleep(1)

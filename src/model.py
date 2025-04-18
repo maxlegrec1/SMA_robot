@@ -23,9 +23,9 @@ import numpy as np
 import os
 from copy import copy
 import json
-from .agents import RadioactivityAgent, RobotAgent, WasteAgent
+from .agents import RadioactivityAgent, RobotAgent, WasteAgent, RefinedAgent
 from .action import Move, Drop, NoneAction
-from .variables import color_dict,direction_dict,inv_direction_dict
+from .variables import color_dict,direction_dict,inv_direction_dict,robot_dict
 
 def next_color(color):
     if color=='green':
@@ -48,7 +48,7 @@ class WasteRetrievalModel(Model):
                  seed=None,
                  strategy='random',
                  save_path = "results/",
-                 max_steps = 1000,
+                 max_steps = 200,
                  finish_threshold = 0.9):
         super().__init__(seed=seed)
         if(width%3!=0):
@@ -154,17 +154,17 @@ class WasteRetrievalModel(Model):
             self.waste_agents.append(agent)
 
         for g in range(self.num_green):
-            agent = RobotAgent(self,color='green',strategy=self.strategy)
+            agent = eval(robot_dict[self.strategy])(self,color='green')
             pos = random_pos_zone1.pop()
             self.grid.place_agent(agent,pos)
             self.robot_agents.append(agent)
         for y in range(self.num_yellow):
-            agent = RobotAgent(self,color='yellow',strategy=self.strategy)
+            agent = eval(robot_dict[self.strategy])(self,color='yellow')
             pos = random_pos_zone2.pop()
             self.grid.place_agent(agent,pos)
             self.robot_agents.append(agent)
         for r in range(self.num_red):
-            agent = RobotAgent(self,color='red',strategy=self.strategy)
+            agent = eval(robot_dict[self.strategy])(self,color='red')
             pos = random_pos_zone3.pop()
             self.grid.place_agent(agent,pos)
             self.robot_agents.append(agent)
