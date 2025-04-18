@@ -178,6 +178,20 @@ class WasteRetrievalModel(Model):
             agent.pos, moore=True, include_center=True
             )
             curr_x,curr_y = agent.pos
+
+            # If the agent share this cell with another agent of the same color
+            # and they hold the exactly one of the same type of waste 
+            if len(agent.knowledge['transporting']) == 1 and agent.state == "FINDING_WASTE":
+                # if the agent is transporting one and if it is still looking then we know
+                # it is tranporting a waste of a color below the color of the agent.
+                cellmates = self.grid.get_cell_list_contents([(curr_x, curr_y)])
+                for cellmate in cellmates: 
+                    if isinstance(cellmate, type(agent)):
+                        if (cellmate.color == agent.color) and (cellmate.state == "FINDING_WASTE"):
+                            if len(cellmate.knowledge['transporting']) == 1:
+                                transported_waste_id = cellmate.knowledge['transporting'][0]
+                                cellmate.drop(transported_waste_id)
+                                agent.pickup(transported_waste_id)
             observation = {}
             for (x,y) in neighbour_squares:
                 #get all agents on that square

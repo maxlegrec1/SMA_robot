@@ -125,11 +125,8 @@ class RobotAgent(BaseAgent):
             return Drop(self.knowledge['transporting'][0])
 
     def update_knowledge(self,observation):
-        print("oui")
         for (x,y) in observation:
-            print(self.knowledge['agent_x'],self.knowledge['agent_y'],x,y,self.in_map((x + self.knowledge['agent_x'],y + self.knowledge['agent_y'])),abs(x) + abs(y) == 1)
             if not self.in_map((x + self.knowledge['agent_x'],y + self.knowledge['agent_y'])) and abs(x) + abs(y) == 1:  #second condition makes sure that its N,S,W,E
-                print("coucou")
                 self.knowledge['internal_map'] = expand_grid(self.knowledge['internal_map'],(x,y))
                 self.knowledge['agent_x'] += max(0,-x)
                 self.knowledge['agent_y'] += max(0,-y)
