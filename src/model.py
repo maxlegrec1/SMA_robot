@@ -68,7 +68,15 @@ class WasteRetrievalModel(Model):
         self.current_step = 0
         self.finished = False
         self.grid = mesa.space.MultiGrid(width, height,torus = False)
-        self.strategy = strategy
+        if strategy == 'communication':
+            self.communicate = True
+            self.strategy = 'refined'
+        else:
+            self.communicate = False
+            self.strategy = strategy
+    
+        
+
         #self.schedule = mesa.time.RandomActivation(self)
         self.disposed_waste_count = 0
         # Add the datacollector
@@ -172,6 +180,49 @@ class WasteRetrievalModel(Model):
 
     def step_agents(self):
         shuffled = np.random.permutation(self.robot_agents)
+        ### Communication ###
+        if self.communicate:
+            seen_pairs = set()
+            agent_tuples = []
+
+            for agent1 in self.robot_agents:
+                x1, y1 = agent1.pos
+                neighbors = self.grid.get_neighborhood((x1, y1), moore=True, include_center=False)
+
+                for (nx, ny) in neighbors:
+                    x_offset = nx - x1
+                    y_offset = ny - y1
+
+                    cellmates = self.grid.get_cell_list_contents([(nx, ny)])
+                    for agent2 in cellmates:
+                        if isinstance(agent2, type(agent1)):
+                            pair_id = tuple(sorted((id(agent1), id(agent2))))
+                            if pair_id in seen_pairs:
+                                continue
+                            seen_pairs.add(pair_id)
+
+                            agent2_x = agent2.knowledge["agent_x"]
+                            agent2_y = agent2.knowledge["agent_y"]
+                            agent1_in_agent2 = (agent2_x - x_offset, agent2_y - y_offset)
+
+                            agent_tuples.append((agent1, agent2, agent1_in_agent2))
+
+            for (agent1, agent2, agent1_in_agent2) in agent_tuples:
+                merged, agent1_in_merged, agent2_in_merged = self.merge_agents_knowledge(
+                    agent1=agent1,
+                    agent2=agent2,
+                    agent1_in_agent2=agent1_in_agent2,
+                )
+                agent1.knowledge['internal_map'] = merged
+                agent2.knowledge['internal_map'] = merged
+
+                agent1.knowledge['agent_x'] = agent1_in_merged[0]
+                agent2.knowledge['agent_x'] = agent2_in_merged[0]
+
+                agent1.knowledge['agent_y'] = agent1_in_merged[1]
+                agent2.knowledge['agent_y'] = agent2_in_merged[1]
+                
+
         for agent in shuffled:
             #find agent position and find the neighbours
             neighbour_squares = self.grid.get_neighborhood(
@@ -268,6 +319,63 @@ class WasteRetrievalModel(Model):
             self.check_finished()
         else:
             pass # Model is paused, do nothing
+        
+    import numpy as np
+
+    def merge_agents_knowledge(self,agent1, agent2, agent1_in_agent2, fill_value=-1):
+        map1 = agent1.knowledge_map
+        map2 = agent2.knowledge_map
+        h1, w1, c = map1.shape
+        h2, w2, _ = map2.shape
+
+        assert c == 6, "Each map is expected to have 6 channels"
+
+        ref1 = (agent1.knowledge['agent_y'], agent1.knowledge['agent_x'])  # (row, col)
+        agent2_pos = (agent2.knowledge['agent_y'], agent2.knowledge['agent_x'])
+        ref2 = (agent1_in_agent2[1], agent1_in_agent2[0])  # (row, col)
+
+        dy = ref1[0] - ref2[0]
+        dx = ref1[1] - ref2[1]
+
+        top = min(0, dy)
+        left = min(0, dx)
+        bottom = max(h1, dy + h2)
+        right = max(w1, dx + w2)
+        H = bottom - top
+        W = right - left
+
+        # Initialize merged map: zeros for first 5 channels, fill_value (-1) for last
+        merged = np.zeros((H, W, c), dtype=map1.dtype)
+        merged[..., 5] = fill_value
+
+        merged_age = np.full((H, W), np.inf)
+
+        y1_offset = -top
+        x1_offset = -left
+        y2_offset = y1_offset + dy
+        x2_offset = x1_offset + dx
+
+        # Insert map1
+        m1_slice = merged[y1_offset:y1_offset+h1, x1_offset:x1_offset+w1]
+        m1_age = map1[..., 5]
+        mask1 = m1_age != -1
+        m1_slice[mask1] = map1[mask1]
+        merged_age[y1_offset:y1_offset+h1, x1_offset:x1_offset+w1][mask1] = m1_age[mask1]
+
+        # Insert newer data from map2
+        m2_age = map2[..., 5]
+        y2s, x2s = np.meshgrid(np.arange(h2), np.arange(w2), indexing="ij")
+        global_y = y2s + y2_offset
+        global_x = x2s + x2_offset
+        known_mask = m2_age != -1
+        newer_mask = known_mask & (m2_age < merged_age[global_y, global_x])
+        merged[global_y[newer_mask], global_x[newer_mask]] = map2[newer_mask]
+        merged_age[global_y[newer_mask], global_x[newer_mask]] = m2_age[newer_mask]
+
+        agent1_in_merged = (ref1[1] + x1_offset, ref1[0] + y1_offset)
+        agent2_in_merged = (agent2_pos[1] + x2_offset, agent2_pos[0] + y2_offset)
+
+        return merged, agent1_in_merged, agent2_in_merged
 
 
     def count_green_waste(self):
