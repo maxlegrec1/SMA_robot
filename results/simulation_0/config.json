@@ -1,1 +1,0 @@
-{"num_green": 5, "num_yellow": 5, "num_red": 5, "num_waste_green": 10, "num_waste_yellow": 10, "num_waste_red": 10, "width": 33, "height": 33, "save_path": "results/", "max_steps": 200, "finish_threshold": 0.9}

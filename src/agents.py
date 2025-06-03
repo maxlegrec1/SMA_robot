@@ -128,6 +128,7 @@ class RobotAgent(BaseAgent):
     def update_knowledge(self,observation):
         for (x,y) in observation:
             if not self.in_map((x + self.knowledge['agent_x'],y + self.knowledge['agent_y'])) and abs(x) + abs(y) == 1:  #second condition makes sure that its N,S,W,E
+                print(f"{self.unique_id},{self.knowledge['internal_map'].shape}, {self.knowledge['agent_x']+x}, {self.knowledge['agent_y']+y}")
                 self.knowledge['internal_map'] = expand_grid(self.knowledge['internal_map'],(x,y))
                 self.knowledge['agent_x'] += max(0,-x)
                 self.knowledge['agent_y'] += max(0,-y)
@@ -135,7 +136,7 @@ class RobotAgent(BaseAgent):
         #add one age to all squares except fog of war
         mask = self.knowledge['internal_map'][:, :, -1] != -1
         self.knowledge['internal_map'][:, :, -1][mask] += 1 
-        print(self.knowledge["internal_map"][:,:,-1])
+        #print(self.knowledge["internal_map"][:,:,-1])
         for (x,y) in observation:
             #first, reset information of that square
             self.knowledge['internal_map'][x + self.knowledge['agent_x'],y + self.knowledge['agent_y'],:] = 0
@@ -152,6 +153,7 @@ class RobotAgent(BaseAgent):
                         self.knowledge['internal_map'][x + self.knowledge['agent_x'],y + self.knowledge['agent_y'],2 + color_dict[agent.color]] += 1 
                     self.knowledge['waste_color'][agent.unique_id] = agent.color
         self.knowledge['last_observation'] = observation
+        assert self.knowledge['internal_map'][self.knowledge['agent_x'],self.knowledge['agent_y'],1] >= 1
     def in_map(self,square):
         x,y = square
         len_x,len_y = self.knowledge['internal_map'].shape[:2]

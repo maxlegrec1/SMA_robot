@@ -22,7 +22,7 @@ import time
 # Create the model (adjust parameters as needed)
 
 def Play():
-    mod = WasteRetrievalModel(num_green = 5, num_yellow = 5, num_red = 5, num_waste_yellow = 0,num_waste_green=0,num_waste_red=1, width = 30, height = 30, strategy='refined')  # Using smaller grid for better visualization
+    mod = WasteRetrievalModel(num_green = 0, num_yellow = 0, num_red = 2, num_waste_yellow = 0,num_waste_green=0,num_waste_red=2, width = 9, height = 9, strategy='communication')  # Using smaller grid for better visualization
 
 
     # Create the visualization

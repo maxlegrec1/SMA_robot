@@ -68,13 +68,13 @@ class WasteRetrievalModel(Model):
         self.current_step = 0
         self.finished = False
         self.grid = mesa.space.MultiGrid(width, height,torus = False)
+        
         if strategy == 'communication':
-            self.communicate = True
+            self.communicate = False
             self.strategy = 'refined'
         else:
             self.communicate = False
             self.strategy = strategy
-    
         
 
         #self.schedule = mesa.time.RandomActivation(self)
@@ -180,6 +180,37 @@ class WasteRetrievalModel(Model):
 
     def step_agents(self):
         shuffled = np.random.permutation(self.robot_agents)
+
+
+        #update knowledge of all agents simultaneously
+        for agent in shuffled:
+            #find agent position and find the neighbours
+            neighbour_squares = self.grid.get_neighborhood(
+            agent.pos, moore=True, include_center=True
+            )
+            curr_x,curr_y = agent.pos
+
+            # If the agent share this cell with another agent of the same color
+            # and they hold the exactly one of the same type of waste 
+            if len(agent.knowledge['transporting']) == 1 and agent.state == "FINDING_WASTE":
+                # if the agent is transporting one and if it is still looking then we know
+                # it is tranporting a waste of a color below the color of the agent.
+                cellmates = self.grid.get_cell_list_contents([(curr_x, curr_y)])
+                for cellmate in cellmates: 
+                    if isinstance(cellmate, type(agent)):
+                        if (cellmate.color == agent.color) and (cellmate.state == "FINDING_WASTE"):
+                            if len(cellmate.knowledge['transporting']) == 1:
+                                transported_waste_id = cellmate.knowledge['transporting'][0]
+                                cellmate.drop(transported_waste_id)
+                                agent.pickup(transported_waste_id)
+            observation = {}
+            for (x,y) in neighbour_squares:
+                #get all agents on that square
+                cellmates = self.grid.get_cell_list_contents([(x,y)])
+                observation[(x-curr_x,y-curr_y)] = cellmates
+            agent.update_knowledge(observation)
+
+
         ### Communication ###
         if self.communicate:
             seen_pairs = set()
@@ -188,7 +219,7 @@ class WasteRetrievalModel(Model):
             for agent1 in self.robot_agents:
                 x1, y1 = agent1.pos
                 neighbors = self.grid.get_neighborhood((x1, y1), moore=True, include_center=False)
-
+                assert agent1.knowledge['internal_map'][agent1.knowledge['agent_x'],agent1.knowledge['agent_y'],1] >= 1
                 for (nx, ny) in neighbors:
                     x_offset = nx - x1
                     y_offset = ny - y1
@@ -208,20 +239,31 @@ class WasteRetrievalModel(Model):
                             agent_tuples.append((agent1, agent2, agent1_in_agent2))
 
             for (agent1, agent2, agent1_in_agent2) in agent_tuples:
+                assert agent1.knowledge['internal_map'][agent1.knowledge['agent_x'],agent1.knowledge['agent_y'],1] >= 1
+                assert agent2.knowledge['internal_map'][agent2.knowledge['agent_x'],agent2.knowledge['agent_y'],1] >= 1
                 merged, agent1_in_merged, agent2_in_merged = self.merge_agents_knowledge(
                     agent1=agent1,
                     agent2=agent2,
                     agent1_in_agent2=agent1_in_agent2,
                 )
+                print('agent1',agent1.knowledge['internal_map'][:,:,1])
+                print('agent1',agent1.knowledge['internal_map'][:,:,0])
+                print('agent2',agent2.knowledge['internal_map'][:,:,1])
+                print('agent2',agent2.knowledge['internal_map'][:,:,0])
+                print(merged[:,:,1])
+                print(merged[:,:,0])
+                print(agent1.knowledge['agent_x'],agent1.knowledge['agent_y'],agent2.knowledge['agent_x'],agent2.knowledge['agent_y'])
+                print(agent1_in_agent2)
                 agent1.knowledge['internal_map'] = merged
                 agent2.knowledge['internal_map'] = merged
 
-                agent1.knowledge['agent_x'] = agent1_in_merged[0]
-                agent2.knowledge['agent_x'] = agent2_in_merged[0]
+                agent1.knowledge['agent_x'] = agent1_in_merged[1]
+                agent2.knowledge['agent_x'] = agent2_in_merged[1]
 
-                agent1.knowledge['agent_y'] = agent1_in_merged[1]
-                agent2.knowledge['agent_y'] = agent2_in_merged[1]
-                
+                agent1.knowledge['agent_y'] = agent1_in_merged[0]
+                agent2.knowledge['agent_y'] = agent2_in_merged[0]
+                assert agent1.knowledge['internal_map'][agent1.knowledge['agent_x'],agent1.knowledge['agent_y'],1] >= 1
+                assert agent2.knowledge['internal_map'][agent2.knowledge['agent_x'],agent2.knowledge['agent_y'],1] >= 1
 
         for agent in shuffled:
             #find agent position and find the neighbours
@@ -323,57 +365,87 @@ class WasteRetrievalModel(Model):
     import numpy as np
 
     def merge_agents_knowledge(self,agent1, agent2, agent1_in_agent2, fill_value=-1):
-        map1 = agent1.knowledge_map
-        map2 = agent2.knowledge_map
+        map1 = agent1.knowledge['internal_map']
+        map2 = agent2.knowledge['internal_map']
         h1, w1, c = map1.shape
         h2, w2, _ = map2.shape
 
         assert c == 6, "Each map is expected to have 6 channels"
 
-        ref1 = (agent1.knowledge['agent_y'], agent1.knowledge['agent_x'])  # (row, col)
-        agent2_pos = (agent2.knowledge['agent_y'], agent2.knowledge['agent_x'])
-        ref2 = (agent1_in_agent2[1], agent1_in_agent2[0])  # (row, col)
+        # Agent positions in their respective maps
+        ref1 = (agent1.knowledge['agent_x'], agent1.knowledge['agent_y'])  
+        ref2 = (agent2.knowledge['agent_x'], agent2.knowledge['agent_y'])
+        
+        # Position of agent1 in agent2's coordinate system
+        agent1_pos_in_agent2 = agent1_in_agent2
 
-        dy = ref1[0] - ref2[0]
-        dx = ref1[1] - ref2[1]
+        # Calculate the offset to align the maps
+        # agent1's ref1 should align with agent1_pos_in_agent2 in the merged map
+        dx = ref1[0] - agent1_pos_in_agent2[0]  # x offset from agent2's perspective
+        dy = ref1[1] - agent1_pos_in_agent2[1]  # y offset from agent2's perspective
 
-        top = min(0, dy)
+        # Calculate merged map bounds
+        # Map1 coordinates in merged space: [dx, dx+w1) x [dy, dy+h1)
+        # Map2 coordinates in merged space: [0, w2) x [0, h2)
         left = min(0, dx)
-        bottom = max(h1, dy + h2)
-        right = max(w1, dx + w2)
-        H = bottom - top
+        right = max(w2, dx + w1)
+        top = min(0, dy)
+        bottom = max(h2, dy + h1)
+        
         W = right - left
+        H = bottom - top
 
-        # Initialize merged map: zeros for first 5 channels, fill_value (-1) for last
+        # Initialize merged map: zeros for first 5 channels, fill_value (-1) for age channel
         merged = np.zeros((H, W, c), dtype=map1.dtype)
-        merged[..., 5] = fill_value
+        merged[..., -1] = fill_value  # Initialize age channel with fill_value
 
-        merged_age = np.full((H, W), np.inf)
+        # Calculate offsets for placing maps in merged space
+        map1_x_offset = dx - left
+        map1_y_offset = dy - top
+        map2_x_offset = 0 - left
+        map2_y_offset = 0 - top
 
-        y1_offset = -top
-        x1_offset = -left
-        y2_offset = y1_offset + dy
-        x2_offset = x1_offset + dx
+        # First, place map2 data
+        map2_slice_y = slice(map2_y_offset, map2_y_offset + h2)
+        map2_slice_x = slice(map2_x_offset, map2_x_offset + w2)
+        
+        # Only copy known data from map2 (age != -1)
+        map2_age = map2[..., -1]
+        map2_known_mask = map2_age != -1
+        
+        # Copy all channels for known cells in map2
+        for i in range(h2):
+            for j in range(w2):
+                if map2_known_mask[i, j]:
+                    merged[map2_y_offset + i, map2_x_offset + j, :] = map2[i, j, :]
 
-        # Insert map1
-        m1_slice = merged[y1_offset:y1_offset+h1, x1_offset:x1_offset+w1]
-        m1_age = map1[..., 5]
-        mask1 = m1_age != -1
-        m1_slice[mask1] = map1[mask1]
-        merged_age[y1_offset:y1_offset+h1, x1_offset:x1_offset+w1][mask1] = m1_age[mask1]
+        # Then, place map1 data, potentially overwriting map2 data with newer information
+        map1_slice_y = slice(map1_y_offset, map1_y_offset + h1)
+        map1_slice_x = slice(map1_x_offset, map1_x_offset + w1)
+        
+        map1_age = map1[..., -1]
+        map1_known_mask = map1_age != -1
+        
+        # For each cell in map1, check if we should use its data
+        for i in range(h1):
+            for j in range(w1):
+                if map1_known_mask[i, j]:
+                    merged_y = map1_y_offset + i
+                    merged_x = map1_x_offset + j
+                    
+                    # Get current age in merged map
+                    current_age = merged[merged_y, merged_x, -1]
+                    map1_cell_age = map1_age[i, j]
+                    
+                    # Use map1 data if:
+                    # 1. Current cell is unknown (age == -1), OR
+                    # 2. Map1 has newer information (lower age, but not negative)
+                    if current_age == -1 or (map1_cell_age >= 0 and map1_cell_age < current_age):
+                        merged[merged_y, merged_x, :] = map1[i, j, :]
 
-        # Insert newer data from map2
-        m2_age = map2[..., 5]
-        y2s, x2s = np.meshgrid(np.arange(h2), np.arange(w2), indexing="ij")
-        global_y = y2s + y2_offset
-        global_x = x2s + x2_offset
-        known_mask = m2_age != -1
-        newer_mask = known_mask & (m2_age < merged_age[global_y, global_x])
-        merged[global_y[newer_mask], global_x[newer_mask]] = map2[newer_mask]
-        merged_age[global_y[newer_mask], global_x[newer_mask]] = m2_age[newer_mask]
-
-        agent1_in_merged = (ref1[1] + x1_offset, ref1[0] + y1_offset)
-        agent2_in_merged = (agent2_pos[1] + x2_offset, agent2_pos[0] + y2_offset)
+        # Calculate agent positions in merged coordinate system
+        agent1_in_merged = (ref1[0] + map1_x_offset, ref1[1] + map1_y_offset)
+        agent2_in_merged = (ref2[0] + map2_x_offset, ref2[1] + map2_y_offset)
 
         return merged, agent1_in_merged, agent2_in_merged
 
@@ -431,5 +503,7 @@ class WasteRetrievalModel(Model):
             "height": self.height,
             "save_path": self.save_path,
             "max_steps": self.max_steps,
-            "finish_threshold": self.finish_threshold
+            "finish_threshold": self.finish_threshold,
+            "strategy": self.strategy,
+            "communicate": self.communicate
         }
